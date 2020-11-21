@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
 
-const port = 4001;
+const port = 3001;
 const index = require("./routes/index");
 
 const app = express();
@@ -20,16 +20,17 @@ let interval;
 const timePerTurn = 60.0;
 let timeRemaining = 60.0;
 
-const wordList = ['a bunch', 'of words', 'are all', 'in a list', 'one person', 'describes', 'the other', 'guesses'];
+const wordList = ['Tom Cruise', 'Heptagon', 'Iggy Pop', 'Velco', 'Boa Constrictor', 'Some sports thing', 'Brian Mulroney', 'Diffraction'];
 let wordIndex = 0;
 
 io.on('connection', (socket) => {
 
   console.log("New client connected");
+
+  // Don't set a separate interval for each client
   if (interval) {
     clearInterval(interval);
   }
-  //interval = setInterval(() => getApiAndEmit(socket), 1000);
   interval = setInterval(() => gameTimer(socket), 1000);
 
   socket.on("disconnect", () => {
@@ -44,12 +45,6 @@ io.on('connection', (socket) => {
 
 });
 
-const getApiAndEmit = (socket) => {
-  const response = new Date();
-  // Emitting a new message. Will be consumed by the client
-  socket.emit("TICK", response);
-};
-
 const gameTimer = (socket) => {
 
   timeRemaining--;
@@ -62,4 +57,3 @@ const gameTimer = (socket) => {
 };
 
 server.listen(port, () => console.log(`Listening on port ${port}`));
-//io.listen(port, () => console.log(`Listening on port ${port}`));
