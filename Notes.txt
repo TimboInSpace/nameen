@@ -1,0 +1,15 @@
+
+connect -> save session
+disconnect -> forget session
+GOT_WORD -> Next word 
+JOIN_GAME -> put the user into a game 
+
+
+First person connects (hosts)
+3 more people connect, alternate teams
+(Maybe have a way to adjust # of people when hosting, then there is no need for a vote or ready-check)
+Create users <--> sessionIDs mapping within game
+
+Game starts as soon as # of people have joined, with a countdown maybe
+
+Players array becomes the turn sequence. 
