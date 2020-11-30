@@ -1,3 +1,4 @@
+const { ENGINE_METHOD_PKEY_ASN1_METHS } = require("constants");
 const express = require("express");
 const session = require('express-session');
 const port = 3001;
@@ -52,6 +53,11 @@ io.on('connection', (socket) => {
     console.log(`Client disconnected: ${socket.id}`);
     // Remove player from game
     disconnectClientFromGame(session.game, session.id);
+    // If they were the last person in the game, also delete the game
+    if (games.hasOwnProperty(session.game)
+     && games[session.game].players.length === 0) {
+       closeGame(session.game);
+    }
   });
 
   socket.on('GOT_WORD', (args) => {
@@ -210,40 +216,32 @@ const beginRound = (gameID) => {
   }
 };
 
+// Close the game, end all its timers and delete the object
+const closeGame = (gameID) => {
+  if (myTimers.hasOwnProperty(gameID)) {
+    clearInterval(myTimers[gameID]);
+  }
+  delete games[gameID];
+};
+
 // 1s tick timer, enabled during a round.
 const roundTimer = (gameID) => {
   // decrement the round time. 
   games[gameID].timeRemaining--;
 
-  // Is remaining time <= 0?
   if (games[gameID].timeRemaining <= 0) {
-    //  If so, round time is up
+    //  If so, round time is up. Otherwise keep ticking
     timesUp(gameID);
   } else {
-    //  If not, keep ticking
-    // TODO: emit a tick
     io.to(gameID).emit(
       "TICK", Math.floor(100 * games[gameID].timeRemaining / ROUND_TIME)
     );
   }
 };
 
-const gameTimer = (socket) => {
-
-  timeRemaining--;
-
-  if (timeRemaining <= 0)
-    timeRemaining = timePerTurn; // The round is finished
-
-  // Emitting a new message. Will be consumed by the client
-  io.emit("TICK", Math.floor(100 * timeRemaining / ROUND_TIME));
-
-};
-
 // Score one point for the active player's team.
 const scorePoint = (gameID) => {
   if (games.hasOwnProperty(gameID) && games[gameID].hasOwnProperty('activePlayer')) {
-    let currPlayer = games[gameID].activePlayer; // sessionID of current player
     // find the index of the current player in the players array
     let g = games[gameID];
     if (g.hasOwnProperty('players')) {
@@ -305,6 +303,8 @@ const timesUp = (gameID) => {
         // If the scores are still less than the threshold, keep re-triggering new rounds
         if (Math.max(...games[gameID].teamScores) < SCORE_THRESH) {
           beginRound(gameID);
+        } else {
+          io.to(gameID).emit('GAME_OVER', "/");
         }
       }, 10000);
     }
