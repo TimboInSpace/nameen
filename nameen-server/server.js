@@ -1,4 +1,3 @@
-const { ENGINE_METHOD_PKEY_ASN1_METHS } = require("constants");
 const express = require("express");
 const session = require('express-session');
 const port = 3001;
@@ -23,7 +22,6 @@ io.use((socket, next) => {
   sessionMiddleware(socket.request, socket.request.res, next);
 });
 
-let interval;
 const ROUND_TIME = 60.0;
 const COUNTDOWN_TIME = 3.0;
 const MIN_PLAYERS = 4;
@@ -42,12 +40,6 @@ io.on('connection', (socket) => {
   const session = socket.request.session;
   session.connections++;
   session.save();
-
-  // Start the timer if it isnt going already
-  //if (interval) {
-  //  clearInterval(interval);
-  //}
-  //interval = setInterval(() => gameTimer(socket), 1000);
 
   socket.on("disconnect", () => {
     console.log(`Client disconnected: ${socket.id}`);
@@ -94,12 +86,13 @@ io.on('connection', (socket) => {
 
 });
 
+// Put a player in a game. Associate their socket to their name
 const connectClientToGame = (socket, session,  gameID, playerName) => {
   // Is the game already in the array?
   if (!games.hasOwnProperty(gameID)) {
     games[gameID] = defaultGame(session, gameID, playerName);
     console.log(`Client starting new game. (GameID: ${gameID})`);
-  } else { // Nope. Make a new entry
+  } else { 
     // Game exists. Which team has fewer players?
     games[gameID].teamA.length > games[gameID].teamB.length ?
     games[gameID].teamB.push(session.id) :
@@ -116,6 +109,7 @@ const connectClientToGame = (socket, session,  gameID, playerName) => {
   io.to(gameID).emit('PLAYERS_CHANGED', games[gameID]);
 };
 
+// Remove a player from a game. Delete their socket reference
 const disconnectClientFromGame = (gameID, playerID) => {
   if (games.hasOwnProperty(gameID)) {
     let g = games[gameID];
@@ -193,7 +187,9 @@ const beginRound = (gameID) => {
 
   // Only begin games that are in the waiting status
   if (games.hasOwnProperty(gameID)
-    && games[gameID].hasOwnProperty('status')) {
+    && games[gameID].hasOwnProperty('status')
+    && ( games[gameID].status === 'waiting' 
+      || games[gameID].status === 'results')) {
 
     games[gameID].roundStartScores = games[gameID].teamScores;
     // Start the timer. 
@@ -315,6 +311,7 @@ const timesUp = (gameID) => {
   }
 };
 
+// Return an object that holds the scores / penalties of the round
 const roundResults = (gameID) => {
   if (games[gameID].hasOwnProperty('roundStartScores')) {
 
@@ -381,6 +378,8 @@ const teamIndex = (arrTeamA, arrTeamB, playerID) => {
   return -1;
 }; 
 
+// Add a numeric suffix to the player's desired name until the username
+// is unique within the players array
 const ensureUnique = (playersArr, requestedName) => {
   
   const isUniqueName = (playersArr, nom) => {
