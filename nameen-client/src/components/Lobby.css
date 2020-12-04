@@ -1,0 +1,11 @@
+.input-form {
+  display: flex;
+  flex-direction: column;
+  align-items: baseline;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+}
+
+.input-form-row {
+  width: 100%;
+}
